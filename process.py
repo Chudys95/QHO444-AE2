@@ -5,3 +5,14 @@ It is likely that most sections will require functions to be placed in this modu
 """
 
 
+import csv
+
+def load_reviews_dataset(file_path):
+    reviews = []
+
+    with open(file_path, mode="r", encoding="utf-8") as csv_file:
+        reader = csv.DictReader(csv_file)
+        for row in reader:
+            reviews.append(row)
+
+    return reviews
