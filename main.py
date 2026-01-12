@@ -1,51 +1,58 @@
-from process import load_reviews_dataset
+from process import load_reviews_dataset as load_data
+from process import get_parks as get_parks_list
+from process import get_locations as get_locations_list
+from process import count_reviews_by_park_and_location as count_reviews
+
+import tui
 
 DATASET_FILE = "Disneyland_reviews.csv"
 
 
-def analysis_menu():
+def analysis_menu(reviews):
     while True:
-        print("\nAnalysis Menu")
-        print("1 - Option 1 (TEST)")
-        print("2 - Option 2 (TEST)")
-        print("3 - Option 3 (TEST)")
-        print("R - Return to main menu")
-
-        choice = input("Select an option: ").strip().upper()
+        tui.print_analysis_menu()
+        choice = tui.get_menu_choice(["1", "2", "3", "R"])
 
         if choice == "1":
-            print("Option 1 selected (TEST)")
+            parks = get_parks_list(reviews)
+            park = tui.ask_for_park(parks)
+            print("Showing reviews for:", park)
+            print("(Option 1 already completed earlier)")
+
         elif choice == "2":
-            print("Option 2 selected (TEST)")
+            parks = get_parks_list(reviews)
+            locations = get_locations_list(reviews)
+
+            park = tui.ask_for_park(parks)
+            location = tui.ask_for_location(locations)
+
+            result = count_reviews(reviews, park, location)
+            tui.show_count_result(park, location, result)
+
         elif choice == "3":
-            print("Option 3 selected (TEST)")
+            print("Not implemented yet")
+
         elif choice == "R":
             break
-        else:
-            print("Invalid option, please try again")
 
 
 def main():
-    reviews = load_reviews_dataset(DATASET_FILE)
+    reviews = load_data(DATASET_FILE)
     print("Loaded reviews:", len(reviews))
 
     while True:
-        print("\nMain Menu")
-        print("A - Analysis")
-        print("B - Visualisation")
-        print("Q - Quit")
-
-        choice = input("Select an option: ").strip().upper()
+        tui.print_main_menu()
+        choice = tui.get_menu_choice(["A", "B", "Q"])
 
         if choice == "A":
-            analysis_menu()
+            analysis_menu(reviews)
+
         elif choice == "B":
-            print("Visualisation menu selected (Test)")
+            print("Visualisation menu not implemented yet")
+
         elif choice == "Q":
             print("Exiting program")
             break
-        else:
-            print("Invalid option, please try again")
 
 
 if __name__ == "__main__":

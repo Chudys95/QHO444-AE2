@@ -1,11 +1,5 @@
-"""
-This module is responsible for processing the data.  It will largely contain functions that will recieve the overall dataset and 
-perfrom necessary processes in order to provide the desired result in the desired format.
-It is likely that most sections will require functions to be placed in this module.
-"""
-
-
 import csv
+
 
 def load_reviews_dataset(file_path):
     reviews = []
@@ -16,3 +10,35 @@ def load_reviews_dataset(file_path):
             reviews.append(row)
 
     return reviews
+
+
+def get_parks(reviews):
+    parks = []
+
+    for row in reviews:
+        park = row.get("Branch")
+        if park and park not in parks:
+            parks.append(park)
+
+    return parks
+
+
+def get_locations(reviews):
+    locations = []
+
+    for row in reviews:
+        location = row.get("Reviewer_Location")
+        if location and location not in locations:
+            locations.append(location)
+
+    return locations
+
+
+def count_reviews_by_park_and_location(reviews, park, location):
+    count = 0
+
+    for row in reviews:
+        if row.get("Branch") == park and row.get("Reviewer_Location") == location:
+            count += 1
+
+    return count
