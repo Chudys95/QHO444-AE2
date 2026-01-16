@@ -1,5 +1,10 @@
-"""
-This module is responsible for visualising the data using Matplotlib.
-Any visualisations should be generated via functions in this module.
-"""
+import matplotlib.pyplot as plt
 
+def pie_chart_reviews_per_park(counts):
+    parks = list(counts.keys())
+    values = list(counts.values())
+
+    plt.figure(figsize=(6, 6))
+    plt.pie(values, labels=parks, autopct="%1.1f%%")
+    plt.title("Number of Reviews per Park")
+    plt.show()

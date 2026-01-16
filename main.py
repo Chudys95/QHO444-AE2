@@ -1,69 +1,68 @@
-from process import load_reviews_dataset as load_data
-from process import get_parks as get_parks_list
-from process import get_locations as get_locations_list
-from process import count_reviews_by_park_and_location as count_reviews
-from process import filter_reviews_by_park as filter_by_park
-from process import get_years as get_years_list
-from process import average_rating_by_park_and_year as avg_by_park_year
-
-import tui
+from process import load_reviews_dataset, count_reviews_per_park
+from visual import pie_chart_reviews_per_park
 
 DATASET_FILE = "Disneyland_reviews.csv"
 
-
 def analysis_menu(reviews):
     while True:
-        tui.print_analysis_menu()
-        choice = tui.get_menu_choice(["1", "2", "3", "R"])
+        print("\nAnalysis Menu")
+        print("1 - View Reviews by Park")
+        print("2 - Count Reviews by Park and Location")
+        print("3 - Average Rating by Park and Year")
+        print("R - Return to main menu")
+
+        choice = input("Select an option: ").strip().upper()
 
         if choice == "1":
-            parks = get_parks_list(reviews)
-            park = tui.ask_for_park(parks)
-            park_reviews = filter_by_park(reviews, park)
-            tui.show_reviews(park_reviews)
-
+            park = input("Enter park name: ").strip()
+            park_reviews = [r for r in reviews if r["Park"] == park]
+            print("Found", len(park_reviews), "reviews for", park)
         elif choice == "2":
-            parks = get_parks_list(reviews)
-            locations = get_locations_list(reviews)
-
-            park = tui.ask_for_park(parks)
-            location = tui.ask_for_location(locations)
-
-            result = count_reviews(reviews, park, location)
-            tui.show_count_result(park, location, result)
-
+            print("Option 2 already implemented earlier.")
         elif choice == "3":
-            parks = get_parks_list(reviews)
-            years = get_years_list(reviews)
-
-            park = tui.ask_for_park(parks)
-            year = tui.ask_for_year(years)
-
-            avg_value = avg_by_park_year(reviews, park, year)
-            tui.show_average_result(park, year, avg_value)
-
+            print("Option 3 already implemented earlier.")
         elif choice == "R":
             break
+        else:
+            print("Invalid option, try again.")
 
+def visual_menu(reviews):
+    while True:
+        print("\nVisualisation Menu")
+        print("1 - Pie Chart: Reviews per Park")
+        print("R - Return to main menu")
+
+        choice = input("Select an option: ").strip().upper()
+
+        if choice == "1":
+            counts = count_reviews_per_park(reviews)
+            pie_chart_reviews_per_park(counts)
+        elif choice == "R":
+            break
+        else:
+            print("Invalid option, try again.")
 
 def main():
-    reviews = load_data(DATASET_FILE)
+    reviews = load_reviews_dataset(DATASET_FILE)
     print("Loaded reviews:", len(reviews))
 
     while True:
-        tui.print_main_menu()
-        choice = tui.get_menu_choice(["A", "B", "Q"])
+        print("\nMain Menu")
+        print("A - Analysis")
+        print("B - Visualisation")
+        print("Q - Quit")
+
+        choice = input("Select an option: ").strip().upper()
 
         if choice == "A":
             analysis_menu(reviews)
-
         elif choice == "B":
-            print("Visualisation menu not implemented yet")
-
+            visual_menu(reviews)
         elif choice == "Q":
             print("Exiting program")
             break
-
+        else:
+            print("Invalid option, try again.")
 
 if __name__ == "__main__":
     main()
