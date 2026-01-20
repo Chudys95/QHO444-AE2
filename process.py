@@ -24,6 +24,125 @@ def get_parks(reviews):
     return parks
 
 
+def get_locations_for_park(reviews, park_name):
+    locations = []
+
+    for row in reviews:
+        if row.get("Branch", "").strip() != park_name:
+            continue
+
+        loc = row.get("Reviewer_Location", "").strip()
+        if loc != "" and loc not in locations:
+            locations.append(loc)
+
+    locations.sort()
+    return locations
+
+
+def get_years_for_park(reviews, park_name):
+    years = []
+
+    for row in reviews:
+        if row.get("Branch", "").strip() != park_name:
+            continue
+
+        ym = row.get("Year_Month", "").strip()
+        if ym == "" or "-" not in ym:
+            continue
+
+        year = ym.split("-")[0].strip()
+        if year != "" and year not in years:
+            years.append(year)
+
+    years.sort()
+    return years
+
+
+def get_reviews_for_park(reviews, park_name):
+    result = []
+
+    for row in reviews:
+        if row.get("Branch", "").strip() == park_name:
+            result.append(row)
+
+    return result
+
+
+def count_reviews_by_park_and_location(reviews, park_name, location_name):
+    count = 0
+
+    for row in reviews:
+        park = row.get("Branch", "").strip()
+        loc = row.get("Reviewer_Location", "").strip()
+
+        if park == park_name and loc == location_name:
+            count += 1
+
+    return count
+
+
+def average_score_per_year_for_park(reviews, park_name, year_text):
+    total = 0
+    count = 0
+
+    for row in reviews:
+        if row.get("Branch", "").strip() != park_name:
+            continue
+
+        ym = row.get("Year_Month", "").strip()
+        if not ym.startswith(year_text + "-"):
+            continue
+
+        rating_text = row.get("Rating", "").strip()
+        try:
+            rating = int(rating_text)
+        except ValueError:
+            continue
+
+        total += rating
+        count += 1
+
+    if count == 0:
+        return None
+
+    return total / count
+
+
+def average_score_per_park_by_location(reviews):
+    data = {}
+
+    for row in reviews:
+        park = row.get("Branch", "").strip()
+        loc = row.get("Reviewer_Location", "").strip()
+        rating_text = row.get("Rating", "").strip()
+
+        if park == "" or loc == "" or rating_text == "":
+            continue
+
+        try:
+            rating = int(rating_text)
+        except ValueError:
+            continue
+
+        if park not in data:
+            data[park] = {}
+
+        if loc not in data[park]:
+            data[park][loc] = {"total": 0, "count": 0}
+
+        data[park][loc]["total"] += rating
+        data[park][loc]["count"] += 1
+
+    result = {}
+
+    for park in data:
+        result[park] = {}
+        for loc in data[park]:
+            result[park][loc] = data[park][loc]["total"] / data[park][loc]["count"]
+
+    return result
+
+
 def count_reviews_per_park(reviews):
     counts = {}
 
