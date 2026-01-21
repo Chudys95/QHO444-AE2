@@ -140,6 +140,30 @@ def visual_menu(reviews):
         else:
             print("Invalid option, try again.\n")
 
+def export_menu(reviews):
+    from tui import show_export_menu, get_choice
+
+    while True:
+        show_export_menu()
+        choice = get_choice("Please enter your export option: ")
+
+        if choice == "1":
+            print("\nTXT export selected. (Not implemented yet)\n")
+
+        elif choice == "2":
+            print("\nCSV export selected. (Not implemented yet)\n")
+
+        elif choice == "3":
+            print("\nJSON export selected. (Not implemented yet)\n")
+
+        elif choice == "R":
+            print("Returning to main menu...\n")
+            break
+
+        else:
+            print("Invalid selection, please try again.\n")
+
+
 
 def main():
     print_title_banner("Disneyland Review Analyser")
@@ -158,9 +182,13 @@ def main():
         elif choice == "B":
             visual_menu(reviews)
 
+        elif choice == "C":
+            export_menu(reviews)
+
         elif choice == "X":
             print("Exiting program...")
             break
+
 
         else:
             print("Invalid option, try again.\n")

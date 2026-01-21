@@ -9,7 +9,9 @@ def show_main_menu():
     print("Please enter the letter which corresponds with your desired menu choice:")
     print("[A] View Data")
     print("[B] Visualise Data")
+    print("[C] Export Data")
     print("[X] Exit")
+
 
 
 def show_analysis_menu():
@@ -27,6 +29,14 @@ def show_visual_menu():
     print("2 - Bar Chart: Top 10 Locations by Average Rating")
     print("3 - Bar Chart: Average Rating by Month")
     print("R - Return to main menu")
+
+def show_export_menu():
+    print("\nExport Menu")
+    print("[1] Export as TXT")
+    print("[2] Export as CSV")
+    print("[3] Export as JSON")
+    print("[R] Return to Main Menu")
+
 
 
 def get_choice(text):
