@@ -232,3 +232,55 @@ def average_rating_by_month_for_park(reviews, park_name):
             avgs[m] = data[m]["total"] / data[m]["count"]
 
     return avgs
+
+def build_export_summary(reviews):
+    data = {}
+
+    for row in reviews:
+        park = row.get("Branch", "").strip()
+        loc = row.get("Reviewer_Location", "").strip()
+        rating_text = row.get("Rating", "").strip()
+
+        if park == "":
+            continue
+
+        if park not in data:
+            data[park] = {
+                "total_reviews": 0,
+                "positive_reviews": 0,
+                "rating_total": 0,
+                "countries": set()
+            }
+
+        data[park]["total_reviews"] += 1
+
+        if loc != "":
+            data[park]["countries"].add(loc)
+
+        try:
+            rating = int(rating_text)
+        except ValueError:
+            rating = 0
+
+        if rating >= 4:
+            data[park]["positive_reviews"] += 1
+
+        data[park]["rating_total"] += rating
+
+    result = {}
+    for park in data:
+        total = data[park]["total_reviews"]
+        if total == 0:
+            avg = 0
+        else:
+            avg = data[park]["rating_total"] / total
+
+        result[park] = {
+            "total_reviews": total,
+            "positive_reviews": data[park]["positive_reviews"],
+            "average_rating": round(avg, 2),
+            "country_count": len(data[park]["countries"])
+        }
+
+    return result
+

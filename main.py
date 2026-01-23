@@ -142,19 +142,34 @@ def visual_menu(reviews):
 
 def export_menu(reviews):
     from tui import show_export_menu, get_choice
+    from process import build_export_summary
+
+    summary = build_export_summary(reviews)
 
     while True:
         show_export_menu()
         choice = get_choice("Please enter your export option: ")
 
         if choice == "1":
-            print("\nTXT export selected. (Not implemented yet)\n")
+            print("\nTXT export selected.")
+            print("Preview:\n")
+            for p in summary:
+                print(p, summary[p])
+            print("\n(Testing)\n")
 
         elif choice == "2":
-            print("\nCSV export selected. (Not implemented yet)\n")
+            print("\nCSV export selected.")
+            print("Preview:\n")
+            for p in summary:
+                print(p, summary[p])
+            print("\n(Testing)\n")
 
         elif choice == "3":
-            print("\nJSON export selected. (Not implemented yet)\n")
+            print("\nJSON export selected.")
+            print("Preview:\n")
+            for p in summary:
+                print(p, summary[p])
+            print("\n(Testing)\n")
 
         elif choice == "R":
             print("Returning to main menu...\n")
