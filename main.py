@@ -1,212 +1,231 @@
 from process import (
     load_reviews_dataset,
     get_parks,
-    get_locations_for_park,
-    get_years_for_park,
     get_reviews_for_park,
-    count_reviews_by_park_and_location,
-    average_score_per_year_for_park,
+    count_reviews_for_park_from_location,
+    average_rating_for_park_in_year,
     average_score_per_park_by_location,
-    count_reviews_per_park,
-    average_rating_per_location_for_park,
-    average_rating_by_month_for_park
+    get_locations_for_park,
+)
+
+
+from tui import (
+    show_main_menu,
+    show_view_data_menu,
+    show_visual_menu,
+    ask_choice,
+    ask_park,
+    ask_location,
+    ask_year,
+    pause,
 )
 
 from visual import (
     pie_chart_reviews_per_park,
-    bar_chart_top_locations,
-    bar_chart_avg_rating_by_month
+    bar_chart_top_locations_avg_rating,
+    bar_chart_avg_rating_by_month,
 )
 
-from tui import (
-    print_title_banner,
-    show_main_menu,
-    show_analysis_menu,
-    show_visual_menu,
-    get_choice
-)
+from exporter import ParkDataExporter
+
 
 DATASET_FILE = "Disneyland_reviews.csv"
 MIN_REVIEWS_FOR_LOCATION = 10
+TOP_LOCATIONS = 10
 
 
-def analysis_menu(reviews):
+def get_locations_for_park(reviews, park):
+    locations = set()
+    for r in reviews:
+        if r.get("Branch") == park:
+            loc = (r.get("Reviewer_Location") or "").strip()
+            if loc:
+                locations.add(loc)
+    return locations
+
+
+
+
+def handle_view_data_menu(reviews):
+    parks = get_parks(reviews)
+
     while True:
-        show_analysis_menu()
-        choice = get_choice("Please enter your choice: ")
+        show_view_data_menu()
+        choice = ask_choice("Select an option: ").upper()
 
-        if choice == "A":
-            parks = get_parks(reviews)
-            print("\nAvailable parks:", ", ".join(parks))
-            park = input("Enter park name: ").strip()
-
+        if choice == "1":
+            park = ask_park(parks)
             park_reviews = get_reviews_for_park(reviews, park)
+            print(f"\nShowing {len(park_reviews)} reviews for: {park}\n")
+            for r in park_reviews:
+                rating = r.get("Rating", "")
+                ym = r.get("Year_Month", "")
+                loc = r.get("Reviewer_Location", "")
+                print(f"- Rating: {rating} | {ym} | {loc}")
 
-            if len(park_reviews) == 0:
-                print("No reviews found for that park.\n")
+            pause()
+
+
+
+
+        elif choice == "2":
+
+            park = ask_park(parks)
+            all_locations = get_locations_for_park(reviews, park)
+            if not all_locations:
+                print(f"\nNo location data found for {park}.\n")
+                pause()
+
+                return
+
+            location = ask_location(all_locations)
+            total = count_reviews_for_park_from_location(reviews, park, location)
+            print(f"\n{park} has {total} reviews from {location}.\n")
+
+            pause()
+
+
+
+
+        elif choice == "3":
+            park = ask_park(parks)
+            year = ask_year()
+            avg = average_rating_for_park_in_year(reviews, park, year)
+            if avg is None:
+                print(f"\nNo reviews found for {park} in {year}.\n")
             else:
-                print(f"\nReviews for {park}:\n")
-                for r in park_reviews:
-                    rating = r.get("Rating", "").strip()
-                    location = r.get("Reviewer_Location", "").strip()
-                    date = r.get("Year_Month", "").strip()
+                print(f"\nAverage rating for {park} in {year}: {avg:.2f}\n")
+            pause()
 
-                    if location == "":
-                        location = "Unknown"
-                    if date == "":
-                        date = "Unknown"
+        elif choice == "4":
+            print("\nAverage score per park by reviewer location:\n")
+            data = average_score_per_park_by_location(reviews)
+            for park, locations in data.items():
+                print(f"\n=== {park} ===")
+                for location, avg in sorted(locations.items(), key=lambda x: x[0].lower()):
+                    print(f"{location}: {avg:.2f}")
+            print()
+            pause()
 
-                    print(f"Rating: {rating} | Location: {location} | Date: {date}")
-                print()
-
-        elif choice == "B":
-            parks = get_parks(reviews)
-            print("\nAvailable parks:", ", ".join(parks))
-            park = input("Enter park name: ").strip()
-
-            locations = get_locations_for_park(reviews, park)
-            if len(locations) == 0:
-                print("No locations found for that park.\n")
-            else:
-                print("\nAvailable locations:", ", ".join(locations))
-                location = input("Enter reviewer location: ").strip()
-                count = count_reviews_by_park_and_location(reviews, park, location)
-                print(f"\nNumber of reviews for {park} from {location}: {count}\n")
-
-        elif choice == "C":
-            parks = get_parks(reviews)
-            print("\nAvailable parks:", ", ".join(parks))
-            park = input("Enter park name: ").strip()
-
-            years = get_years_for_park(reviews, park)
-            if len(years) == 0:
-                print("No years found for that park.\n")
-            else:
-                print("\nAvailable years:", ", ".join(years))
-                year = input("Enter year (YYYY): ").strip()
-                avg = average_score_per_year_for_park(reviews, park, year)
-
-                if avg is None:
-                    print("No data found for that park/year.\n")
-                else:
-                    print(f"\nAverage rating for {park} in {year}: {avg:.2f}\n")
-
-        elif choice == "D":
-            results = average_score_per_park_by_location(reviews)
-            if len(results) == 0:
-                print("No data found.\n")
-            else:
-                for park in sorted(results.keys()):
-                    print(f"\n{park}")
-                    for loc in sorted(results[park].keys()):
-                        print(f"  {loc}: {results[park][loc]:.2f}")
-                print()
-
-        elif choice == "R":
+        elif choice == "X":
             break
 
         else:
-            print("Invalid option, try again.\n")
+            print("\nInvalid choice. Try again.\n")
+
+def ask_location(all_locations):
+    loc_list = sorted(all_locations)
+    display_line = " | ".join(loc_list)
+
+    print("\nAvailable locations:")
+    print(display_line)
+
+    while True:
+        choice = input("\nEnter location exactly as shown: ").strip()
+        if choice in all_locations:
+            return choice
+        print("Invalid location. Try again.")
 
 
-def visual_menu(reviews):
+
+
+def handle_visual_menu(reviews):
+    parks = get_parks(reviews)
+
     while True:
         show_visual_menu()
-        choice = get_choice("Select an option: ")
+        choice = ask_choice("Select an option: ").upper()
 
         if choice == "1":
-            counts = count_reviews_per_park(reviews)
-            pie_chart_reviews_per_park(counts)
+            pie_chart_reviews_per_park(reviews)
+            pause()
 
         elif choice == "2":
-            parks = get_parks(reviews)
-            print("\nParks:", ", ".join(parks))
-            park = input("Enter park name: ").strip()
-
-            avgs = average_rating_per_location_for_park(reviews, park, MIN_REVIEWS_FOR_LOCATION)
-            bar_chart_top_locations(avgs, park, MIN_REVIEWS_FOR_LOCATION)
+            park = ask_park(parks)
+            bar_chart_top_locations_avg_rating(
+                reviews,
+                park,
+                top_n=TOP_LOCATIONS,
+                min_reviews=MIN_REVIEWS_FOR_LOCATION,
+            )
+            pause()
 
         elif choice == "3":
-            parks = get_parks(reviews)
-            print("\nParks:", ", ".join(parks))
-            park = input("Enter park name: ").strip()
+            park = ask_park(parks)
+            bar_chart_avg_rating_by_month(reviews, park)
+            pause()
 
-            avgs = average_rating_by_month_for_park(reviews, park)
-            bar_chart_avg_rating_by_month(avgs, park)
-
-        elif choice == "R":
+        elif choice == "X":
             break
 
         else:
-            print("Invalid option, try again.\n")
+            print("\nInvalid choice. Try again.\n")
 
-def export_menu(reviews):
-    from tui import show_export_menu, get_choice
-    from process import build_export_summary
 
-    summary = build_export_summary(reviews)
+def handle_export_menu(reviews):
+    exporter = ParkDataExporter(reviews)
 
     while True:
-        show_export_menu()
-        choice = get_choice("Please enter your export option: ")
+        print("\n--- Export Data (OOP) ---")
+        print("Choose export format:")
+        print("1 - TXT")
+        print("2 - CSV")
+        print("3 - JSON")
+        print("X - Back")
+
+        choice = ask_choice("Select an option: ").upper()
 
         if choice == "1":
-            print("\nTXT export selected.")
-            print("Preview:\n")
-            for p in summary:
-                print(p, summary[p])
-            print("\n(Testing)\n")
+            filename = "park_summary.txt"
+            exporter.export_txt(filename)
+            print(f"\nExported to {filename}\n")
+            pause()
 
         elif choice == "2":
-            print("\nCSV export selected.")
-            print("Preview:\n")
-            for p in summary:
-                print(p, summary[p])
-            print("\n(Testing)\n")
+            filename = "park_summary.csv"
+            exporter.export_csv(filename)
+            print(f"\nExported to {filename}\n")
+            pause()
 
         elif choice == "3":
-            print("\nJSON export selected.")
-            print("Preview:\n")
-            for p in summary:
-                print(p, summary[p])
-            print("\n(Testing)\n")
+            filename = "park_summary.json"
+            exporter.export_json(filename)
+            print(f"\nExported to {filename}\n")
+            pause()
 
-        elif choice == "R":
-            print("Returning to main menu...\n")
+        elif choice == "X":
             break
 
         else:
-            print("Invalid selection, please try again.\n")
-
+            print("\nInvalid choice. Try again.\n")
 
 
 def main():
-    print_title_banner("Disneyland Review Analyser")
+    print("Disneyland Review Analysis Tool\n")
 
-    print("Loading dataset...")
     reviews = load_reviews_dataset(DATASET_FILE)
-    print(f"Finished reading dataset, {len(reviews)} rows found.\n")
+    print(f"Dataset loaded. Rows read: {len(reviews)}\n")
 
     while True:
         show_main_menu()
-        choice = get_choice("Please enter your desired option: ")
+        choice = ask_choice("Select an option: ").upper()
+        print(f"\nYou selected: {choice}\n")
 
         if choice == "A":
-            analysis_menu(reviews)
+            handle_view_data_menu(reviews)
 
         elif choice == "B":
-            visual_menu(reviews)
+            handle_visual_menu(reviews)
 
         elif choice == "C":
-            export_menu(reviews)
+            handle_export_menu(reviews)
 
         elif choice == "X":
-            print("Exiting program...")
+            print("Exiting program. Goodbye!")
             break
 
-
         else:
-            print("Invalid option, try again.\n")
+            print("Invalid choice. Please choose A, B, C or X.\n")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,21 @@
+Disneyland Park Summary
+=======================
+
+Park: Disneyland_California
+Total reviews: 19406
+Positive reviews (>=4): 16499
+Average score: 4.41
+Countries reviewed from: 111
+
+Park: Disneyland_HongKong
+Total reviews: 9617
+Positive reviews (>=4): 7744
+Average score: 4.20
+Countries reviewed from: 115
+
+Park: Disneyland_Paris
+Total reviews: 13629
+Positive reviews (>=4): 9674
+Average score: 3.96
+Countries reviewed from: 132
+

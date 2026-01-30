@@ -1,57 +1,85 @@
 import matplotlib.pyplot as plt
 
+from process import (
+    count_reviews_per_park,
+    average_rating_per_location_for_park,
+    average_rating_by_month_for_park,
+)
 
-def pie_chart_reviews_per_park(counts):
-    parks = list(counts.keys())
-    values = list(counts.values())
 
-    plt.figure(figsize=(6, 6))
-    plt.pie(values, labels=parks, autopct="%1.1f%%")
+def pie_chart_reviews_per_park(reviews):
+    counts = count_reviews_per_park(reviews)
+    if not counts:
+        print("No data available for chart.")
+        return
+
+    labels = list(counts.keys())
+    sizes = list(counts.values())
+
+    plt.figure()
     plt.title("Number of Reviews per Park")
+    plt.pie(sizes, labels=labels, autopct="%1.1f%%")
+    plt.show()
+
+
+def bar_chart_top_locations_avg_rating(reviews, park, top_n=10, min_reviews=10):
+    data = average_rating_per_location_for_park(reviews, park, min_reviews=min_reviews)
+    if not data:
+        print(
+            f"No location data found for {park}. "
+            f"(Try lowering min_reviews.)"
+        )
+        return
+
+    # Sort by average rating (high to low)
+    sorted_items = sorted(data.items(), key=lambda x: x[1][0], reverse=True)[:top_n]
+
+    locations = [x[0] for x in sorted_items]
+    avgs = [x[1][0] for x in sorted_items]
+    counts = [x[1][1] for x in sorted_items]
+
+    plt.figure()
+    plt.title(f"Top {top_n} Locations by Highest Average Rating\n{park}")
+    plt.bar(locations, avgs)
+    plt.xlabel("Reviewer Location")
+    plt.ylabel("Average Rating (out of 5)")
+    plt.xticks(rotation=45, ha="right")
+
+    # Add count labels above bars (how many reviews that avg is based on)
+    for i, v in enumerate(avgs):
+        plt.text(i, v, str(counts[i]), ha="center", va="bottom")
+
     plt.tight_layout()
     plt.show()
 
 
-def bar_chart_top_locations(avg_ratings, park_name, min_reviews):
-    if len(avg_ratings) == 0:
-        print("No location data with at least", min_reviews, "reviews for:", park_name)
+def bar_chart_avg_rating_by_month(reviews, park):
+    avgs = average_rating_by_month_for_park(reviews, park)
+    if not avgs:
+        print(f"No monthly data found for {park}.")
         return
 
-    sorted_ratings = sorted(avg_ratings.items(), key=lambda x: x[1], reverse=True)
-    top_10 = sorted_ratings[:10]
+    month_names = {
+        "01": "Jan", "02": "Feb", "03": "Mar", "04": "Apr",
+        "05": "May", "06": "Jun", "07": "Jul", "08": "Aug",
+        "09": "Sep", "10": "Oct", "11": "Nov", "12": "Dec",
+    }
 
-    locations = [item[0] for item in top_10]
-    ratings = [item[1] for item in top_10]
+    # Ensure month order Jan..Dec
+    ordered_months = [f"{i:02d}" for i in range(1, 13)]
+    x_labels = []
+    y_values = []
 
-    plt.figure(figsize=(10, 5))
-    plt.bar(locations, ratings)
-    plt.title("Top 10 Locations by Average Rating (" + park_name + ")")
-    plt.xlabel("Location (min " + str(min_reviews) + " reviews)")
-    plt.ylabel("Average Rating")
-    plt.xticks(rotation=45)
-    plt.tight_layout()
-    plt.show()
+    for m in ordered_months:
+        if m in avgs:
+            x_labels.append(month_names[m])
+            y_values.append(avgs[m])
 
-
-def bar_chart_avg_rating_by_month(avg_by_month, park_name):
-    if len(avg_by_month) == 0:
-        print("No month data found for:", park_name)
-        return
-
-    months = list(range(1, 13))
-    ratings = []
-
-    for m in months:
-        if m in avg_by_month:
-            ratings.append(avg_by_month[m])
-        else:
-            ratings.append(0)
-
-    plt.figure(figsize=(10, 5))
-    plt.bar(months, ratings)
-    plt.title("Average Rating by Month (" + park_name + ")")
+    plt.figure()
+    plt.title(f"Average Rating by Month\n{park}")
+    plt.bar(x_labels, y_values)
     plt.xlabel("Month")
-    plt.ylabel("Average Rating")
-    plt.xticks(months)
+    plt.ylabel("Average Rating (out of 5)")
+    plt.ylim(0, 5)
     plt.tight_layout()
     plt.show()

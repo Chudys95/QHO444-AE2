@@ -1,106 +1,84 @@
 import csv
+from collections import defaultdict
 
 
-def load_reviews_dataset(file_path):
+def load_reviews_dataset(filename):
     reviews = []
 
-    with open(file_path, mode="r", encoding="utf-8") as csv_file:
-        reader = csv.DictReader(csv_file)
-        for row in reader:
-            reviews.append(row)
+    try:
+        with open(filename, "r", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                # Clean and convert fields
+                row["Rating"] = safe_int(row.get("Rating"))
+                row["Year_Month"] = (row.get("Year_Month") or "").strip()
+                row["Reviewer_Location"] = (row.get("Reviewer_Location") or "").strip()
+                row["Branch"] = (row.get("Branch") or "").strip()
+                reviews.append(row)
+
+    except FileNotFoundError:
+        print(f"ERROR: File not found: {filename}")
+        print("Make sure Disneyland_reviews.csv is in the same folder as main.py.")
+        return []
 
     return reviews
 
-
-def get_parks(reviews):
-    parks = []
-
-    for row in reviews:
-        park = row.get("Branch", "").strip()
-        if park != "" and park not in parks:
-            parks.append(park)
-
-    parks.sort()
-    return parks
-
-
-def get_locations_for_park(reviews, park_name):
-    locations = []
-
-    for row in reviews:
-        if row.get("Branch", "").strip() != park_name:
-            continue
-
-        loc = row.get("Reviewer_Location", "").strip()
-        if loc != "" and loc not in locations:
-            locations.append(loc)
-
-    locations.sort()
+def get_locations_for_park(reviews, park):
+    locations = set()
+    for r in reviews:
+        if r.get("Branch") == park:
+            loc = (r.get("Reviewer_Location") or "").strip()
+            if loc:
+                locations.add(loc)
     return locations
 
 
-def get_years_for_park(reviews, park_name):
-    years = []
 
-    for row in reviews:
-        if row.get("Branch", "").strip() != park_name:
-            continue
-
-        ym = row.get("Year_Month", "").strip()
-        if ym == "" or "-" not in ym:
-            continue
-
-        year = ym.split("-")[0].strip()
-        if year != "" and year not in years:
-            years.append(year)
-
-    years.sort()
-    return years
+def safe_int(value):
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
 
 
-def get_reviews_for_park(reviews, park_name):
-    result = []
-
-    for row in reviews:
-        if row.get("Branch", "").strip() == park_name:
-            result.append(row)
-
-    return result
+def get_parks(reviews):
+    parks = sorted({r["Branch"] for r in reviews if r.get("Branch")})
+    return parks
 
 
-def count_reviews_by_park_and_location(reviews, park_name, location_name):
-    count = 0
-
-    for row in reviews:
-        park = row.get("Branch", "").strip()
-        loc = row.get("Reviewer_Location", "").strip()
-
-        if park == park_name and loc == location_name:
-            count += 1
-
-    return count
+def get_reviews_for_park(reviews, park):
+    return [r for r in reviews if r.get("Branch") == park]
 
 
-def average_score_per_year_for_park(reviews, park_name, year_text):
+def count_reviews_for_park_from_location(reviews, park, location):
+    location_lower = location.strip().lower()
+    total = 0
+
+    for r in reviews:
+        if r.get("Branch") == park:
+            loc = (r.get("Reviewer_Location") or "").lower()
+            if loc == location_lower:
+                total += 1
+
+    return total
+
+
+def average_rating_for_park_in_year(reviews, park, year):
     total = 0
     count = 0
 
-    for row in reviews:
-        if row.get("Branch", "").strip() != park_name:
+    for r in reviews:
+        if r.get("Branch") != park:
             continue
 
-        ym = row.get("Year_Month", "").strip()
-        if not ym.startswith(year_text + "-"):
-            continue
-
-        rating_text = row.get("Rating", "").strip()
-        try:
-            rating = int(rating_text)
-        except ValueError:
-            continue
-
-        total += rating
-        count += 1
+        ym = r.get("Year_Month") or ""
+        if len(ym) >= 4 and ym[:4].isdigit():
+            row_year = int(ym[:4])
+            if row_year == year:
+                rating = r.get("Rating")
+                if rating is not None:
+                    total += rating
+                    count += 1
 
     if count == 0:
         return None
@@ -108,179 +86,86 @@ def average_score_per_year_for_park(reviews, park_name, year_text):
     return total / count
 
 
-def average_score_per_park_by_location(reviews):
-    data = {}
-
-    for row in reviews:
-        park = row.get("Branch", "").strip()
-        loc = row.get("Reviewer_Location", "").strip()
-        rating_text = row.get("Rating", "").strip()
-
-        if park == "" or loc == "" or rating_text == "":
-            continue
-
-        try:
-            rating = int(rating_text)
-        except ValueError:
-            continue
-
-        if park not in data:
-            data[park] = {}
-
-        if loc not in data[park]:
-            data[park][loc] = {"total": 0, "count": 0}
-
-        data[park][loc]["total"] += rating
-        data[park][loc]["count"] += 1
-
-    result = {}
-
-    for park in data:
-        result[park] = {}
-        for loc in data[park]:
-            result[park][loc] = data[park][loc]["total"] / data[park][loc]["count"]
-
-    return result
-
-
 def count_reviews_per_park(reviews):
-    counts = {}
+    counts = defaultdict(int)
+    for r in reviews:
+        park = r.get("Branch")
+        if park:
+            counts[park] += 1
+    return dict(counts)
 
-    for row in reviews:
-        park = row.get("Branch", "").strip()
-        if park == "":
+
+def average_rating_per_location_for_park(reviews, park, min_reviews=10):
+    # Returns dict: location -> (avg_rating, review_count)
+    totals = defaultdict(int)
+    counts = defaultdict(int)
+
+    for r in reviews:
+        if r.get("Branch") != park:
             continue
 
-        if park not in counts:
-            counts[park] = 0
-
-        counts[park] += 1
-
-    return counts
-
-
-def average_rating_per_location_for_park(reviews, park_name, min_reviews):
-    data = {}
-
-    for row in reviews:
-        if row.get("Branch", "").strip() != park_name:
+        location = r.get("Reviewer_Location") or ""
+        rating = r.get("Rating")
+        if not location or rating is None:
             continue
 
-        location = row.get("Reviewer_Location", "").strip()
-        rating_text = row.get("Rating", "").strip()
-
-        if location == "" or rating_text == "":
-            continue
-
-        try:
-            rating = int(rating_text)
-        except ValueError:
-            continue
-
-        if location not in data:
-            data[location] = {"total": 0, "count": 0}
-
-        data[location]["total"] += rating
-        data[location]["count"] += 1
-
-    avgs = {}
-
-    for loc in data:
-        if data[loc]["count"] >= min_reviews:
-            avgs[loc] = data[loc]["total"] / data[loc]["count"]
-
-    return avgs
-
-
-def average_rating_by_month_for_park(reviews, park_name):
-    data = {}
-
-    for row in reviews:
-        if row.get("Branch", "").strip() != park_name:
-            continue
-
-        ym = row.get("Year_Month", "").strip()
-        rating_text = row.get("Rating", "").strip()
-
-        if ym == "" or rating_text == "":
-            continue
-
-        parts = ym.split("-")
-        if len(parts) < 2:
-            continue
-
-        try:
-            month_num = int(parts[1])
-        except ValueError:
-            continue
-
-        try:
-            rating = int(rating_text)
-        except ValueError:
-            continue
-
-        if month_num not in data:
-            data[month_num] = {"total": 0, "count": 0}
-
-        data[month_num]["total"] += rating
-        data[month_num]["count"] += 1
-
-    avgs = {}
-
-    for m in data:
-        if data[m]["count"] > 0:
-            avgs[m] = data[m]["total"] / data[m]["count"]
-
-    return avgs
-
-def build_export_summary(reviews):
-    data = {}
-
-    for row in reviews:
-        park = row.get("Branch", "").strip()
-        loc = row.get("Reviewer_Location", "").strip()
-        rating_text = row.get("Rating", "").strip()
-
-        if park == "":
-            continue
-
-        if park not in data:
-            data[park] = {
-                "total_reviews": 0,
-                "positive_reviews": 0,
-                "rating_total": 0,
-                "countries": set()
-            }
-
-        data[park]["total_reviews"] += 1
-
-        if loc != "":
-            data[park]["countries"].add(loc)
-
-        try:
-            rating = int(rating_text)
-        except ValueError:
-            rating = 0
-
-        if rating >= 4:
-            data[park]["positive_reviews"] += 1
-
-        data[park]["rating_total"] += rating
+        totals[location] += rating
+        counts[location] += 1
 
     result = {}
-    for park in data:
-        total = data[park]["total_reviews"]
-        if total == 0:
-            avg = 0
-        else:
-            avg = data[park]["rating_total"] / total
-
-        result[park] = {
-            "total_reviews": total,
-            "positive_reviews": data[park]["positive_reviews"],
-            "average_rating": round(avg, 2),
-            "country_count": len(data[park]["countries"])
-        }
+    for location, c in counts.items():
+        if c >= min_reviews:
+            result[location] = (totals[location] / c, c)
 
     return result
 
+
+def average_rating_by_month_for_park(reviews, park):
+    # Month here is just the MM part of YYYY-MM.
+    totals = defaultdict(int)
+    counts = defaultdict(int)
+
+    for r in reviews:
+        if r.get("Branch") != park:
+            continue
+
+        ym = (r.get("Year_Month") or "").strip()
+        rating = r.get("Rating")
+        if rating is None or len(ym) < 7 or ym[4] != "-":
+            continue
+
+        month = ym[5:7]
+        if month.isdigit():
+            totals[month] += rating
+            counts[month] += 1
+
+    avgs = {}
+    for month, c in counts.items():
+        avgs[month] = totals[month] / c
+
+    return avgs
+
+
+def average_score_per_park_by_location(reviews):
+    # Returns: park -> { location -> avg }
+    totals = defaultdict(lambda: defaultdict(int))
+    counts = defaultdict(lambda: defaultdict(int))
+
+    for r in reviews:
+        park = r.get("Branch") or ""
+        location = r.get("Reviewer_Location") or ""
+        rating = r.get("Rating")
+
+        if not park or not location or rating is None:
+            continue
+
+        totals[park][location] += rating
+        counts[park][location] += 1
+
+    result = {}
+    for park in totals:
+        result[park] = {}
+        for location in totals[park]:
+            result[park][location] = totals[park][location] / counts[park][location]
+
+    return result
